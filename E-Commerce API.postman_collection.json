@@ -1,0 +1,602 @@
+{
+	"info": {
+		"_postman_id": "e840e9cc-dcdb-419b-a404-ce47e0bed386",
+		"name": "E-Commerce API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "45651377"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Desmond Linc\",\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "## Purpose\nThis endpoint registers a new user account in the e-commerce system. It creates a user profile with the provided credentials and returns an authentication token upon successful registration.\n\n## Request Parameters\n\n### Body Parameters (JSON)\n- **name** (string, required): The full name of the user\n  - Example: `\"Desmond Linc\"`\n- **email** (string, required): A valid email address for the user account\n  - Must be unique in the system\n  - Example: `\"user@example.com\"`\n- **password** (string, required): The user's password\n  - Minimum length requirements may apply\n  - Example: `\"password123\"`\n- **password_confirmation** (string, required): Must match the password field\n  - Used to verify the user entered their intended password\n  - Example: `\"password123\"`\n\n## Expected Responses\n\n### Success Response (201 Created)\n```json\n{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Desmond Linc\",\n    \"email\": \"user@example.com\",\n    \"created_at\": \"2024-01-01T00:00:00.000000Z\"\n  },\n  \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n```\n\n### Error Responses\n\n**422 Unprocessable Entity** - Validation errors\n```json\n{\n  \"message\": \"The given data was invalid.\",\n  \"errors\": {\n    \"email\": [\"The email has already been taken.\"],\n    \"password\": [\"The password confirmation does not match.\"]\n  }\n}\n```\n\n**400 Bad Request** - Invalid request format\n\n## Usage Guidelines\n\n1. **Before Registration**: Ensure the email address is not already registered in the system\n2. **Password Security**: Use strong passwords with a mix of characters\n3. **Token Storage**: Store the returned authentication token securely for subsequent API calls\n4. **Next Steps**: After successful registration, use the token in the Authorization header for authenticated requests\n5. **Rate Limiting**: Be aware of potential rate limits on registration attempts\n\n## Example Usage\nAfter successful registration, include the token in subsequent requests:\n```\nAuthorization: Bearer {token}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "7|gfR2mhBpoADVtHZPgb7eCVoY0Nm5GO0AbBA4lcGP0fc88fb7",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "# Login Endpoint\n\n## Purpose\nThis endpoint authenticates users and provides an access token for subsequent API requests. It validates user credentials (email and password) and returns a JWT token that must be included in the Authorization header for protected endpoints.\n\n## Authentication Flow\n1. User submits credentials (email and password) via POST request\n2. Server validates credentials against the database\n3. If valid, server generates a JWT token containing user information\n4. Token is returned in the response and should be stored securely by the client\n5. Client includes token in Authorization header for subsequent requests: `Authorization: Bearer <token>`\n\n## Request Parameters\n\n### Headers\n- **Content-Type**: `application/json` (required)\n  - Specifies that the request body contains JSON data\n\n### Body Parameters (JSON)\n- **email** (string, required)\n  - User's registered email address\n  - Must be a valid email format\n  - Example: `user@example.com`\n  \n- **password** (string, required)\n  - User's account password\n  - Case-sensitive\n  - Example: `password123`\n\n## Expected Responses\n\n### Success Response (200 OK)\n```json\n{\n  \"success\": true,\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"12345\",\n    \"email\": \"user@example.com\",\n    \"name\": \"John Doe\"\n  },\n  \"expiresIn\": \"24h\"\n}\n```\n\n**Response Fields:**\n- `success`: Boolean indicating successful authentication\n- `token`: JWT access token for API authorization\n- `user`: Object containing authenticated user details\n- `expiresIn`: Token expiration time\n\n## Error Scenarios\n\n### 400 Bad Request\nMissing or invalid request parameters\n```json\n{\n  \"success\": false,\n  \"error\": \"Email and password are required\"\n}\n```\n\n### 401 Unauthorized\nInvalid credentials provided\n```json\n{\n  \"success\": false,\n  \"error\": \"Invalid email or password\"\n}\n```\n\n### 403 Forbidden\nAccount locked or suspended\n```json\n{\n  \"success\": false,\n  \"error\": \"Account has been suspended\"\n}\n```\n\n### 429 Too Many Requests\nRate limit exceeded (too many failed login attempts)\n```json\n{\n  \"success\": false,\n  \"error\": \"Too many login attempts. Please try again later\"\n}\n```\n\n### 500 Internal Server Error\nServer-side error occurred\n```json\n{\n  \"success\": false,\n  \"error\": \"An internal error occurred. Please try again\"\n}\n```\n\n## Security Considerations\n\n- **Password Security**: Passwords are transmitted over HTTPS and should never be logged or stored in plain text\n- **Token Storage**: Store tokens securely (e.g., httpOnly cookies or secure storage mechanisms)\n- **Token Expiration**: Tokens expire after 24 hours; implement refresh token logic for extended sessions\n- **Rate Limiting**: Multiple failed login attempts may trigger temporary account lockout\n- **HTTPS Only**: Always use HTTPS in production to prevent credential interception\n- **Input Validation**: Email and password are validated server-side to prevent injection attacks\n\n## Usage Guidelines\n\n1. **First-Time Users**: Must register using the `/auth/register` endpoint before logging in\n2. **Token Management**: Store the returned token securely and include it in all authenticated requests\n3. **Token Refresh**: Implement token refresh logic before expiration to maintain user sessions\n4. **Logout**: Call the `/auth/logout` endpoint to invalidate the token when user logs out\n5. **Error Handling**: Implement proper error handling for all response codes\n\n## Example Workflow\n\n### Step 1: Login Request\n```javascript\nPOST {{base_url}}/auth/login\nContent-Type: application/json\n\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}\n```\n\n### Step 2: Store Token\n```javascript\n// Store the token from response\nconst token = response.data.token;\nlocalStorage.setItem('authToken', token);\n```\n\n### Step 3: Use Token in Subsequent Requests\n```javascript\n// Example: Get user profile\nGET {{base_url}}/auth/profile\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n```\n\n```javascript\n// Example: Get products\nGET {{base_url}}/products\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n```\n\n```javascript\n// Example: Create a product (admin only)\nPOST {{base_url}}/products\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\nContent-Type: application/json\n\n{\n  \"name\": \"Product Name\",\n  \"price\": 29.99\n}\n```\n\n### Step 4: Handle Token Expiration\n```javascript\n// If you receive 401 Unauthorized, token may be expired\n// Prompt user to login again or implement refresh token logic\n```\n\n## Related Endpoints\n- **Register**: `POST /auth/register` - Create a new user account\n- **Profile**: `GET /auth/profile` - Get authenticated user profile\n- **Logout**: `POST /auth/logout` - Invalidate current token\n- **Products**: `GET /products` - Access protected product resources"
+					},
+					"response": []
+				},
+				{
+					"name": "Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "4|xbgjjh2VaZo5Mtb3Aog7kFjS8pQLNXsKGi1LbpiIdcc1b1ce",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						},
+						"description": "# Get User Profile\n\n## Overview\nThis endpoint retrieves the authenticated user's profile information. It requires a valid JWT Bearer token obtained from the login endpoint and returns comprehensive user account details.\n\n## Authentication\n**Required:** Yes  \n**Type:** Bearer Token (JWT)\n\n### Authorization Header\n- **Header Name:** `Authorization`\n- **Format:** `Bearer {token}`\n- **Description:** A valid JWT access token must be included in the Authorization header. The token is obtained after successful authentication via the `/auth/login` endpoint.\n- **Example:** `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n### Token Requirements\n- Token must be valid and not expired\n- Token must belong to an active user account\n- Token signature must be verified by the server\n\n## Endpoint Details\n- **Method:** GET\n- **URL:** `{{base_url}}/auth/profile`\n- **Content-Type:** application/json\n\n## Request Parameters\nThis endpoint does not require any query parameters or request body. Authentication is handled entirely through the Authorization header.\n\n## Expected Response\n\n### Success Response (200 OK)\n```json\n{\n  \"id\": \"user123\",\n  \"email\": \"user@example.com\",\n  \"username\": \"johndoe\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"customer\",\n  \"createdAt\": \"2024-01-15T10:30:00Z\",\n  \"updatedAt\": \"2024-01-20T14:45:00Z\",\n  \"isActive\": true\n}\n```\n\n**Response Fields:**\n- `id` - Unique user identifier\n- `email` - User's email address\n- `username` - User's username\n- `firstName` - User's first name\n- `lastName` - User's last name\n- `role` - User role (e.g., customer, admin, vendor)\n- `createdAt` - Account creation timestamp\n- `updatedAt` - Last profile update timestamp\n- `isActive` - Account status\n\n## Error Responses\n\n### 401 Unauthorized\n**Cause:** Missing, invalid, or expired token\n\n```json\n{\n  \"error\": \"Unauthorized\",\n  \"message\": \"Invalid or expired token\",\n  \"statusCode\": 401\n}\n```\n\n**Common Reasons:**\n- No Authorization header provided\n- Token has expired\n- Token signature is invalid\n- Token format is incorrect\n\n### 403 Forbidden\n**Cause:** Valid token but insufficient permissions or account issues\n\n```json\n{\n  \"error\": \"Forbidden\",\n  \"message\": \"Account has been suspended\",\n  \"statusCode\": 403\n}\n```\n\n**Common Reasons:**\n- User account has been deactivated\n- User account has been suspended\n- Token has been revoked\n\n### 404 Not Found\n**Cause:** User profile not found\n\n```json\n{\n  \"error\": \"Not Found\",\n  \"message\": \"User profile not found\",\n  \"statusCode\": 404\n}\n```\n\n**Common Reasons:**\n- User account has been deleted\n- Invalid user ID in token\n\n### 500 Internal Server Error\n**Cause:** Server-side error\n\n```json\n{\n  \"error\": \"Internal Server Error\",\n  \"message\": \"An unexpected error occurred\",\n  \"statusCode\": 500\n}\n```\n\n## Security Considerations\n\n### Token Security\n- **Never expose tokens:** Do not log, share, or commit tokens to version control\n- **Token storage:** Store tokens securely (e.g., httpOnly cookies, secure storage)\n- **Token expiration:** Tokens typically expire after a set period (e.g., 1 hour, 24 hours)\n- **Refresh tokens:** Use refresh tokens to obtain new access tokens when they expire\n\n### Best Practices\n- Always use HTTPS in production to encrypt token transmission\n- Implement token refresh logic before expiration\n- Clear tokens on logout\n- Validate token on every request\n- Use environment variables for the `{{token}}` variable\n\n### Rate Limiting\nThis endpoint may be subject to rate limiting. Excessive requests may result in temporary blocking.\n\n## Usage Guidelines\n\n### Typical Workflow\n1. **Login:** Authenticate user via `/auth/login` endpoint\n2. **Store Token:** Save the returned JWT token securely\n3. **Set Variable:** Store token in Postman environment variable `{{token}}`\n4. **Fetch Profile:** Call this endpoint to retrieve user profile\n5. **Use Profile Data:** Display or use profile information in your application\n\n### Example Workflow\n\n**Step 1: Login**\n```\nPOST {{base_url}}/auth/login\nBody: {\n  \"email\": \"user@example.com\",\n  \"password\": \"securePassword123\"\n}\n```\n\n**Step 2: Extract Token**\n```javascript\n// In Tests tab of login request\npm.environment.set(\"token\", pm.response.json().token);\n```\n\n**Step 3: Get Profile**\n```\nGET {{base_url}}/auth/profile\nHeaders: Authorization: Bearer {{token}}\n```\n\n### When to Use This Endpoint\n- After successful login to display user information\n- To verify token validity\n- To refresh user data in the UI\n- To check user permissions and roles\n- Before performing user-specific operations\n\n### Integration Example\n```javascript\n// JavaScript/Node.js example\nconst token = localStorage.getItem('authToken');\n\nfetch('https://api.example.com/auth/profile', {\n  method: 'GET',\n  headers: {\n    'Authorization': `Bearer ${token}`,\n    'Content-Type': 'application/json'\n  }\n})\n.then(response => {\n  if (!response.ok) {\n    throw new Error(`HTTP ${response.status}`);\n  }\n  return response.json();\n})\n.then(profile => {\n  console.log('User Profile:', profile);\n  // Update UI with profile data\n})\n.catch(error => {\n  console.error('Error fetching profile:', error);\n  // Handle error (e.g., redirect to login)\n});\n```\n\n## Testing Tips\n- Test with valid token to verify successful response\n- Test with expired token to verify 401 handling\n- Test without Authorization header to verify authentication requirement\n- Test with malformed token to verify validation\n- Verify response data structure matches expected format\n\n## Related Endpoints\n- `POST /auth/register` - Create new user account\n- `POST /auth/login` - Authenticate and obtain token\n- `POST /auth/logout` - Invalidate current token\n- `PATCH /auth/profile` - Update user profile (if available)\n- `POST /auth/refresh` - Refresh expired token (if available)"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "4|xbgjjh2VaZo5Mtb3Aog7kFjS8pQLNXsKGi1LbpiIdcc1b1ce",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Product",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/products/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"products",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cart",
+			"item": [
+				{
+					"name": "View Cart",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "5|XY76IkPltTO0ij6nFY1eFsy5IC5ng9yYQgFHtflj011c0bac",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/cart",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add to Cart",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "5|XY76IkPltTO0ij6nFY1eFsy5IC5ng9yYQgFHtflj011c0bac",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_id\": 1,\n    \"quantity\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/cart/items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"cart",
+								"items"
+							]
+						},
+						"description": "# Add to Cart\n\n## Purpose\nThis endpoint allows authenticated users to add products to their shopping cart. It validates product availability, checks stock levels, and either creates a new cart item or updates the quantity if the product already exists in the cart.\n\n## Authentication Requirements\n- **Required**: Yes\n- **Type**: Bearer Token Authentication\n- **Header**: `Authorization: Bearer {{token}}`\n- **Token Source**: Obtained from the Login endpoint\n- **Security**: Token must be valid and not expired. Unauthorized requests will receive a 401 status code.\n\n## Headers\n\n### Authorization (Required)\n- **Key**: `Authorization`\n- **Value**: `Bearer {{token}}`\n- **Description**: JWT token for user authentication. Replace `{{token}}` with the actual token received during login.\n- **Example**: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n### Content-Type (Required)\n- **Key**: `Content-Type`\n- **Value**: `application/json`\n- **Description**: Indicates that the request body contains JSON data.\n\n## Request Body Schema\n\nThe request body must be a JSON object with the following properties:\n\n```json\n{\n  \"product_id\": 1,\n  \"quantity\": 2\n}\n```\n\n### Parameters\n\n#### product_id (Required)\n- **Type**: Integer\n- **Description**: The unique identifier of the product to add to the cart\n- **Validation Rules**:\n  - Must be a positive integer\n  - Product must exist in the database\n  - Product must be in stock\n- **Example**: `1`\n\n#### quantity (Required)\n- **Type**: Integer\n- **Description**: The number of units to add to the cart\n- **Validation Rules**:\n  - Must be a positive integer (minimum: 1)\n  - Cannot exceed available stock for the product\n  - Maximum quantity per item may be limited by business rules\n- **Example**: `2`\n\n## Business Logic\n\n### Stock Validation\n- The system checks if the requested quantity is available in stock\n- If insufficient stock exists, the request fails with a 422 error\n- Stock is reserved but not deducted until checkout is completed\n\n### Cart Management\n- If the product already exists in the user's cart, the quantity is updated (added to existing quantity)\n- If the product is new to the cart, a new cart item is created\n- Each user has a unique cart associated with their account\n- Cart items persist across sessions until checkout or manual removal\n\n## Expected Responses\n\n### Success Response (200 OK)\n```json\n{\n  \"success\": true,\n  \"message\": \"Product added to cart successfully\",\n  \"data\": {\n    \"cart_item_id\": 123,\n    \"product_id\": 1,\n    \"product_name\": \"Sample Product\",\n    \"quantity\": 2,\n    \"unit_price\": 29.99,\n    \"subtotal\": 59.98,\n    \"updated_at\": \"2024-01-15T10:30:00Z\"\n  }\n}\n```\n\n### Success Response (201 Created)\nReturned when a new cart item is created:\n```json\n{\n  \"success\": true,\n  \"message\": \"Product added to cart\",\n  \"data\": {\n    \"cart_item_id\": 124,\n    \"product_id\": 1,\n    \"quantity\": 2,\n    \"total_items_in_cart\": 3\n  }\n}\n```\n\n## Error Scenarios\n\n### 400 Bad Request\n**Cause**: Invalid request body format or missing required fields\n\n**Response**:\n```json\n{\n  \"success\": false,\n  \"error\": \"Bad Request\",\n  \"message\": \"Invalid request body. Both product_id and quantity are required.\",\n  \"details\": {\n    \"product_id\": \"Must be a positive integer\",\n    \"quantity\": \"Must be a positive integer greater than 0\"\n  }\n}\n```\n\n### 401 Unauthorized\n**Cause**: Missing, invalid, or expired authentication token\n\n**Response**:\n```json\n{\n  \"success\": false,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Authentication token is missing or invalid. Please login to continue.\"\n}\n```\n\n### 404 Not Found\n**Cause**: Product with the specified product_id does not exist\n\n**Response**:\n```json\n{\n  \"success\": false,\n  \"error\": \"Not Found\",\n  \"message\": \"Product with ID 1 not found\",\n  \"product_id\": 1\n}\n```\n\n### 422 Unprocessable Entity\n**Cause**: Validation errors such as insufficient stock or invalid quantity\n\n**Response**:\n```json\n{\n  \"success\": false,\n  \"error\": \"Unprocessable Entity\",\n  \"message\": \"Insufficient stock available\",\n  \"details\": {\n    \"product_id\": 1,\n    \"requested_quantity\": 10,\n    \"available_stock\": 5\n  }\n}\n```\n\n**Alternative 422 Response** (Invalid quantity):\n```json\n{\n  \"success\": false,\n  \"error\": \"Validation Error\",\n  \"message\": \"Quantity must be between 1 and 99\",\n  \"field\": \"quantity\"\n}\n```\n\n### 500 Internal Server Error\n**Cause**: Unexpected server error during processing\n\n**Response**:\n```json\n{\n  \"success\": false,\n  \"error\": \"Internal Server Error\",\n  \"message\": \"An unexpected error occurred while processing your request. Please try again later.\",\n  \"request_id\": \"req_abc123xyz\"\n}\n```\n\n## Security Considerations\n\n1. **Authentication**: Always include a valid Bearer token in the Authorization header\n2. **Token Security**: Never expose tokens in URLs or logs. Store securely on the client side\n3. **HTTPS**: Always use HTTPS in production to encrypt data in transit\n4. **Rate Limiting**: This endpoint may be rate-limited to prevent abuse (e.g., 100 requests per minute)\n5. **Input Validation**: All inputs are validated server-side to prevent injection attacks\n6. **User Isolation**: Users can only modify their own cart; cross-user access is prevented\n\n## Usage Guidelines\n\n### Best Practices\n1. Always check product availability before adding to cart (use Get Single Product endpoint)\n2. Handle all error responses gracefully in your application\n3. Implement retry logic for 500 errors with exponential backoff\n4. Cache the authentication token and reuse it for multiple requests\n5. Update cart UI immediately after successful addition for better UX\n\n### Performance Tips\n- Batch multiple cart operations when possible\n- Implement optimistic UI updates with rollback on failure\n- Use the View Cart endpoint to sync cart state periodically\n\n## Example Workflows\n\n### Workflow 1: Add Item to Cart After Authentication\n\n**Step 1**: Login to get authentication token\n```\nPOST {{base_url}}/auth/login\nBody: {\"email\": \"user@example.com\", \"password\": \"password123\"}\nResponse: {\"token\": \"eyJhbGc...\"}\n```\n\n**Step 2**: Get product details to verify availability\n```\nGET {{base_url}}/products/1\nHeaders: Authorization: Bearer {{token}}\nResponse: {\"id\": 1, \"name\": \"Product Name\", \"stock\": 50, \"price\": 29.99}\n```\n\n**Step 3**: Add product to cart\n```\nPOST {{base_url}}/cart/items\nHeaders: \n  Authorization: Bearer {{token}}\n  Content-Type: application/json\nBody: {\"product_id\": 1, \"quantity\": 2}\nResponse: {\"success\": true, \"message\": \"Product added to cart successfully\"}\n```\n\n**Step 4**: View updated cart\n```\nGET {{base_url}}/cart\nHeaders: Authorization: Bearer {{token}}\nResponse: {\"items\": [...], \"total\": 59.98}\n```\n\n### Workflow 2: Handling Insufficient Stock\n\n**Step 1**: Attempt to add more items than available\n```\nPOST {{base_url}}/cart/items\nBody: {\"product_id\": 1, \"quantity\": 100}\nResponse (422): {\"error\": \"Insufficient stock\", \"available_stock\": 50}\n```\n\n**Step 2**: Adjust quantity and retry\n```\nPOST {{base_url}}/cart/items\nBody: {\"product_id\": 1, \"quantity\": 50}\nResponse (200): {\"success\": true}\n```\n\n### Workflow 3: Updating Existing Cart Item\n\n**Step 1**: Add product to cart\n```\nPOST {{base_url}}/cart/items\nBody: {\"product_id\": 1, \"quantity\": 2}\nResponse: {\"cart_item_id\": 123, \"quantity\": 2}\n```\n\n**Step 2**: Add same product again (quantity will be cumulative)\n```\nPOST {{base_url}}/cart/items\nBody: {\"product_id\": 1, \"quantity\": 3}\nResponse: {\"cart_item_id\": 123, \"quantity\": 5, \"message\": \"Cart item updated\"}\n```\n\n## Related Endpoints\n- `GET {{base_url}}/cart` - View Cart\n- `GET {{base_url}}/products` - Get All Products\n- `GET {{base_url}}/products/:id` - Get Single Product\n- `DELETE {{base_url}}/cart/items/:id` - Remove from Cart\n- `POST {{base_url}}/auth/login` - Login\n\n## Notes\n- Cart items are automatically cleared after successful checkout\n- Inactive carts may be cleared after 30 days\n- Price calculations are performed server-side to prevent tampering"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Cart Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "5|3aeOoL4zB7tKnWYL2rYeUE3hAxkexOQtu1THfjMD93d70cd6",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"quantity\": 3\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/cart/items/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"cart",
+								"items",
+								"1"
+							]
+						},
+						"description": "# Update Cart Item\n\n## Overview\nThis endpoint allows authenticated users to update the quantity of a specific item in their shopping cart. It's a critical component of the cart management system that enables customers to adjust product quantities before proceeding to checkout.\n\n## Endpoint Details\n- **Method**: PUT\n- **URL**: `{{base_url}}/cart/items/{itemId}`\n- **Authentication**: Required (Bearer Token)\n\n## Parameters\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `itemId` | integer | Yes | The unique identifier of the cart item to update. This ID is returned when items are added to the cart. Example: `1` |\n\n### Headers\n| Header | Type | Required | Description |\n|--------|------|----------|-------------|\n| `Authorization` | string | Yes | Bearer token for user authentication. Format: `Bearer {token}`. The token is obtained from the login endpoint and identifies the authenticated user. |\n| `Content-Type` | string | Yes | Must be set to `application/json` to indicate the request body format. |\n\n### Request Body\nThe request body must be a JSON object with the following schema:\n\n```json\n{\n  \"quantity\": 3\n}\n```\n\n| Field | Type | Required | Validation Rules | Description |\n|-------|------|----------|------------------|-------------|\n| `quantity` | integer | Yes | - Must be a positive integer<br>- Minimum value: 1<br>- Maximum value: Limited by available stock<br>- Cannot exceed product inventory | The new quantity for the cart item. This value replaces the existing quantity (not incremental). |\n\n## Authentication Requirements\n- Users must be authenticated with a valid Bearer token\n- The token must not be expired\n- Users can only update items in their own cart\n- Attempting to update another user's cart items will result in a 403 Forbidden error\n\n## Business Logic\n\n### Stock Validation\n- The system validates that the requested quantity does not exceed available inventory\n- If the product is out of stock or insufficient stock is available, the request will fail with a 422 error\n- Stock levels are checked in real-time to prevent overselling\n\n### Quantity Updates\n- The quantity specified in the request **replaces** the existing quantity (it's not added to the current quantity)\n- To remove an item from the cart, use the DELETE endpoint instead of setting quantity to 0\n- Quantity changes immediately affect the cart total and item subtotal\n\n### Cart Item Ownership\n- Each cart item belongs to a specific user\n- Users can only modify items in their own cart\n- The system verifies ownership using the Bearer token before processing updates\n\n## Response Examples\n\n### Success Response (200 OK)\n```json\n{\n  \"success\": true,\n  \"message\": \"Cart item updated successfully\",\n  \"data\": {\n    \"itemId\": 1,\n    \"productId\": 42,\n    \"productName\": \"Wireless Headphones\",\n    \"quantity\": 3,\n    \"unitPrice\": 79.99,\n    \"subtotal\": 239.97,\n    \"updatedAt\": \"2024-01-15T10:30:00Z\"\n  }\n}\n```\n\n### Error Response - Invalid Quantity (400 Bad Request)\n```json\n{\n  \"success\": false,\n  \"error\": \"Invalid request\",\n  \"message\": \"Quantity must be a positive integer\",\n  \"code\": \"INVALID_QUANTITY\"\n}\n```\n\n### Error Response - Unauthorized (401 Unauthorized)\n```json\n{\n  \"success\": false,\n  \"error\": \"Authentication required\",\n  \"message\": \"Missing or invalid authentication token\",\n  \"code\": \"UNAUTHORIZED\"\n}\n```\n\n### Error Response - Forbidden (403 Forbidden)\n```json\n{\n  \"success\": false,\n  \"error\": \"Access denied\",\n  \"message\": \"You do not have permission to update this cart item\",\n  \"code\": \"FORBIDDEN\"\n}\n```\n\n### Error Response - Item Not Found (404 Not Found)\n```json\n{\n  \"success\": false,\n  \"error\": \"Cart item not found\",\n  \"message\": \"The specified cart item does not exist or has been removed\",\n  \"code\": \"ITEM_NOT_FOUND\"\n}\n```\n\n### Error Response - Insufficient Stock (422 Unprocessable Entity)\n```json\n{\n  \"success\": false,\n  \"error\": \"Insufficient stock\",\n  \"message\": \"Only 2 units available in stock. Requested: 3\",\n  \"code\": \"INSUFFICIENT_STOCK\",\n  \"availableQuantity\": 2\n}\n```\n\n### Error Response - Server Error (500 Internal Server Error)\n```json\n{\n  \"success\": false,\n  \"error\": \"Internal server error\",\n  \"message\": \"An unexpected error occurred while updating the cart item\",\n  \"code\": \"INTERNAL_ERROR\"\n}\n```\n\n## Error Scenarios\n\n| Status Code | Scenario | Resolution |\n|-------------|----------|------------|\n| 400 | Invalid quantity format (negative, zero, or non-integer) | Provide a valid positive integer for quantity |\n| 400 | Missing required fields in request body | Include all required fields (quantity) |\n| 401 | Missing authentication token | Include valid Bearer token in Authorization header |\n| 401 | Expired or invalid token | Re-authenticate using the login endpoint |\n| 403 | Attempting to update another user's cart item | Only update items in your own cart |\n| 404 | Cart item ID does not exist | Verify the item ID from the View Cart endpoint |\n| 404 | Product has been discontinued | Remove the item and add an alternative product |\n| 422 | Requested quantity exceeds available stock | Reduce quantity to available stock level |\n| 422 | Product is out of stock | Remove item or wait for restock |\n| 500 | Database connection failure | Retry the request after a brief delay |\n| 500 | Unexpected server error | Contact support if the issue persists |\n\n## Security Considerations\n\n### Token Security\n- Never expose Bearer tokens in client-side code or logs\n- Store tokens securely (e.g., httpOnly cookies, secure storage)\n- Tokens should be transmitted only over HTTPS\n- Implement token refresh mechanisms for long sessions\n\n### Input Validation\n- All input is validated server-side to prevent injection attacks\n- Quantity values are sanitized and type-checked\n- Path parameters are validated against expected formats\n\n### Authorization\n- The system enforces strict ownership validation\n- Users cannot access or modify other users' cart data\n- All requests are logged for security auditing\n\n### Rate Limiting\n- Consider implementing rate limiting to prevent abuse\n- Excessive requests may result in temporary throttling\n\n## Usage Guidelines\n\n### Best Practices\n1. **Always check stock availability** before allowing users to increase quantities\n2. **Implement optimistic UI updates** but handle failures gracefully\n3. **Validate quantities client-side** before sending requests to improve UX\n4. **Handle all error scenarios** with user-friendly messages\n5. **Refresh cart data** after successful updates to ensure consistency\n\n### Common Use Cases\n- User increases quantity from product detail page\n- User adjusts quantity directly in cart view\n- Bulk quantity updates during promotional periods\n- Inventory synchronization after stock changes\n\n## Example Workflows\n\n### Workflow 1: Update Cart Item After Authentication\n\n**Step 1: Authenticate User**\n```\nPOST {{base_url}}/auth/login\nContent-Type: application/json\n\n{\n  \"email\": \"customer@example.com\",\n  \"password\": \"securePassword123\"\n}\n\nResponse:\n{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": { \"id\": 123, \"email\": \"customer@example.com\" }\n}\n```\n\n**Step 2: View Current Cart**\n```\nGET {{base_url}}/cart\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n\nResponse:\n{\n  \"items\": [\n    {\n      \"itemId\": 1,\n      \"productId\": 42,\n      \"productName\": \"Wireless Headphones\",\n      \"quantity\": 1,\n      \"unitPrice\": 79.99\n    }\n  ]\n}\n```\n\n**Step 3: Update Cart Item Quantity**\n```\nPUT {{base_url}}/cart/items/1\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\nContent-Type: application/json\n\n{\n  \"quantity\": 3\n}\n\nResponse:\n{\n  \"success\": true,\n  \"message\": \"Cart item updated successfully\",\n  \"data\": {\n    \"itemId\": 1,\n    \"quantity\": 3,\n    \"subtotal\": 239.97\n  }\n}\n```\n\n### Workflow 2: Handle Insufficient Stock Scenario\n\n**Step 1: Attempt to Update with High Quantity**\n```\nPUT {{base_url}}/cart/items/1\nAuthorization: Bearer {token}\nContent-Type: application/json\n\n{\n  \"quantity\": 100\n}\n\nResponse (422):\n{\n  \"success\": false,\n  \"error\": \"Insufficient stock\",\n  \"message\": \"Only 5 units available in stock. Requested: 100\",\n  \"availableQuantity\": 5\n}\n```\n\n**Step 2: Update with Available Quantity**\n```\nPUT {{base_url}}/cart/items/1\nAuthorization: Bearer {token}\nContent-Type: application/json\n\n{\n  \"quantity\": 5\n}\n\nResponse (200):\n{\n  \"success\": true,\n  \"message\": \"Cart item updated successfully\",\n  \"data\": {\n    \"itemId\": 1,\n    \"quantity\": 5,\n    \"subtotal\": 399.95\n  }\n}\n```\n\n### Workflow 3: Error Recovery\n\n**Scenario: Token Expired During Update**\n```\nPUT {{base_url}}/cart/items/1\nAuthorization: Bearer {expired_token}\nContent-Type: application/json\n\n{\n  \"quantity\": 2\n}\n\nResponse (401):\n{\n  \"success\": false,\n  \"error\": \"Authentication required\",\n  \"message\": \"Token has expired\"\n}\n\nAction: Re-authenticate and retry\nPOST {{base_url}}/auth/login\n(Get new token and retry the update request)\n```\n\n## Related Endpoints\n- `POST /cart/items` - Add item to cart\n- `GET /cart` - View cart contents\n- `DELETE /cart/items/{itemId}` - Remove item from cart\n- `DELETE /cart` - Clear entire cart\n- `POST /checkout` - Proceed to checkout\n\n## Notes\n- Cart items are automatically removed if the product is deleted or discontinued\n- Price changes do not affect items already in the cart until the cart is refreshed\n- Cart data persists across sessions for authenticated users\n- Consider implementing cart expiration policies for abandoned carts"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Cart Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "5|3aeOoL4zB7tKnWYL2rYeUE3hAxkexOQtu1THfjMD93d70cd6",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/cart/items/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"cart",
+								"items",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Checkout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "5|XY76IkPltTO0ij6nFY1eFsy5IC5ng9yYQgFHtflj011c0bac",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/orders/checkout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"orders",
+								"checkout"
+							]
+						},
+						"description": "# Checkout Order\n\n## Overview\nThis endpoint processes the checkout operation for the authenticated user's shopping cart. It validates the cart contents, checks product availability, creates an order, processes payment, deducts stock quantities, and clears the cart upon successful completion.\n\n## Endpoint Details\n- **Method:** POST\n- **URL:** `{{base_url}}/orders/checkout`\n- **Authentication:** Required (Bearer Token)\n\n## Authentication Requirements\nThis endpoint requires authentication via Bearer token in the Authorization header. The token identifies the user and their associated shopping cart.\n\n### Authorization Header\n- **Header Name:** `Authorization`\n- **Format:** `Bearer {{token}}`\n- **Description:** JWT token obtained from the login endpoint. The token must be valid and not expired.\n- **Example:** `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n## Checkout Process Flow\n1. **Authentication Verification** - Validates the Bearer token and identifies the user\n2. **Cart Validation** - Checks if the user has items in their cart\n3. **Stock Availability Check** - Verifies all cart items are in stock with sufficient quantities\n4. **Price Calculation** - Calculates subtotal, taxes, and total amount\n5. **Order Creation** - Creates a new order record with all cart items\n6. **Payment Processing** - Processes the payment transaction\n7. **Stock Deduction** - Reduces product stock quantities by ordered amounts\n8. **Cart Clearing** - Empties the user's cart after successful order creation\n9. **Order Confirmation** - Returns order details and confirmation\n\n## Request Parameters\n\n### Headers\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| Authorization | string | Yes | Bearer token for user authentication. Format: `Bearer {token}` |\n\n### Body\nNo request body is required. The endpoint processes the items currently in the authenticated user's cart.\n\n## Expected Responses\n\n### Success Response (200 OK)\nOrder successfully created and cart cleared.\n\n```json\n{\n  \"success\": true,\n  \"message\": \"Order placed successfully\",\n  \"order\": {\n    \"orderId\": \"ORD-2024-001234\",\n    \"userId\": \"user_12345\",\n    \"orderDate\": \"2024-01-15T14:30:00Z\",\n    \"status\": \"confirmed\",\n    \"items\": [\n      {\n        \"productId\": \"prod_001\",\n        \"productName\": \"Wireless Headphones\",\n        \"quantity\": 2,\n        \"unitPrice\": 79.99,\n        \"subtotal\": 159.98\n      },\n      {\n        \"productId\": \"prod_002\",\n        \"productName\": \"USB-C Cable\",\n        \"quantity\": 3,\n        \"unitPrice\": 12.99,\n        \"subtotal\": 38.97\n      }\n    ],\n    \"pricing\": {\n      \"subtotal\": 198.95,\n      \"tax\": 19.90,\n      \"shipping\": 5.99,\n      \"total\": 224.84\n    },\n    \"shippingAddress\": {\n      \"street\": \"123 Main St\",\n      \"city\": \"New York\",\n      \"state\": \"NY\",\n      \"zipCode\": \"10001\",\n      \"country\": \"USA\"\n    },\n    \"paymentMethod\": \"credit_card\",\n    \"paymentStatus\": \"paid\"\n  }\n}\n```\n\n## Error Scenarios\n\n### 400 Bad Request - Empty Cart\nThe user's cart is empty and cannot proceed to checkout.\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Cart is empty\",\n  \"message\": \"Your cart is empty. Please add items before checking out.\"\n}\n```\n\n### 401 Unauthorized - Missing or Invalid Token\nAuthentication token is missing, invalid, or expired.\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Authentication token is missing or invalid. Please log in again.\"\n}\n```\n\n### 404 Not Found - Cart Not Found\nNo cart exists for the authenticated user.\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Cart not found\",\n  \"message\": \"No active cart found for this user.\"\n}\n```\n\n### 422 Unprocessable Entity - Insufficient Stock\nOne or more items in the cart are out of stock or have insufficient quantity.\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Insufficient stock\",\n  \"message\": \"Some items in your cart are no longer available in the requested quantity.\",\n  \"unavailableItems\": [\n    {\n      \"productId\": \"prod_001\",\n      \"productName\": \"Wireless Headphones\",\n      \"requestedQuantity\": 5,\n      \"availableQuantity\": 2\n    }\n  ]\n}\n```\n\n### 422 Unprocessable Entity - Payment Failed\nPayment processing failed during checkout.\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Payment failed\",\n  \"message\": \"Payment could not be processed. Please check your payment method and try again.\",\n  \"paymentError\": \"Insufficient funds\"\n}\n```\n\n### 500 Internal Server Error\nServer encountered an unexpected error during checkout processing.\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Internal server error\",\n  \"message\": \"An unexpected error occurred while processing your order. Please try again later.\"\n}\n```\n\n## Business Logic\n\n### Cart Validation\n- Verifies the cart exists and belongs to the authenticated user\n- Ensures the cart contains at least one item\n- Validates all cart items still exist in the product catalog\n\n### Stock Deduction\n- Checks real-time stock availability for all cart items\n- Prevents overselling by validating requested quantities against available stock\n- Atomically deducts stock quantities to prevent race conditions\n- Rolls back stock changes if order creation fails\n\n### Order Creation\n- Generates unique order ID\n- Captures current product prices (not cart prices) to reflect any price changes\n- Records order timestamp and user information\n- Sets initial order status to \"confirmed\" or \"pending\" based on payment status\n- Stores complete order details including items, quantities, and pricing\n\n### Payment Processing\n- Validates payment method\n- Processes payment transaction through payment gateway\n- Handles payment failures gracefully without creating incomplete orders\n- Records payment status and transaction ID\n\n### Cart Clearing\n- Removes all items from the user's cart after successful order creation\n- Only clears cart if all previous steps (stock deduction, order creation, payment) succeed\n- Maintains cart integrity if any step fails\n\n## Security Considerations\n\n### Authentication\n- All requests must include a valid Bearer token\n- Tokens should be stored securely and transmitted over HTTPS only\n- Expired tokens will be rejected with 401 status\n\n### Authorization\n- Users can only checkout their own cart\n- The system validates that the cart belongs to the authenticated user\n- Cross-user cart access is prevented\n\n### Data Integrity\n- Stock deduction uses database transactions to prevent race conditions\n- Order creation is atomic - either all steps succeed or none do\n- Payment processing is idempotent to prevent duplicate charges\n\n### Rate Limiting\n- Consider implementing rate limiting to prevent abuse\n- Recommended: 10 checkout attempts per user per hour\n\n## Usage Guidelines\n\n### Prerequisites\n1. User must be authenticated (have valid Bearer token)\n2. User must have items in their cart\n3. All cart items must be in stock\n4. User must have valid payment method configured\n\n### Best Practices\n- Always check cart contents before initiating checkout\n- Handle all error responses appropriately in your application\n- Implement retry logic for 500 errors with exponential backoff\n- Display clear error messages to users for 400/422 errors\n- Refresh authentication token if 401 error occurs\n\n### Complete Checkout Workflow Example\n\n#### Step 1: Add Items to Cart\n```\nPOST {{base_url}}/cart/add\nAuthorization: Bearer {{token}}\nContent-Type: application/json\n\n{\n  \"productId\": \"prod_001\",\n  \"quantity\": 2\n}\n```\n\n#### Step 2: View Cart Contents\n```\nGET {{base_url}}/cart\nAuthorization: Bearer {{token}}\n```\n\n#### Step 3: Proceed to Checkout\n```\nPOST {{base_url}}/orders/checkout\nAuthorization: Bearer {{token}}\n```\n\n#### Step 4: Verify Order Created\n```\nGET {{base_url}}/orders/{{orderId}}\nAuthorization: Bearer {{token}}\n```\n\n#### Step 5: Confirm Cart is Empty\n```\nGET {{base_url}}/cart\nAuthorization: Bearer {{token}}\n```\n\n## Related Endpoints\n- `GET /cart` - View current cart contents\n- `POST /cart/add` - Add items to cart\n- `DELETE /cart/items/{itemId}` - Remove items from cart\n- `GET /orders/{orderId}` - View order details\n- `GET /orders` - List all user orders\n- `GET /products/{productId}` - Check product availability\n\n## Notes\n- Checkout is a critical operation that should be performed over secure HTTPS connection\n- Consider implementing a confirmation step before calling this endpoint\n- Stock quantities are checked at checkout time, not when items are added to cart\n- Prices are locked at checkout time and won't change even if product prices are updated later\n- Failed checkouts do not create partial orders or deduct stock"
+					},
+					"response": []
+				},
+				{
+					"name": "My Orders",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "3|n66ybhRf3u9vH78YTuiqjO1JfZ4KJHN4VGUsDPJhd8733e0e",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/orders",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"orders"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "Simulate Payment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "3|n66ybhRf3u9vH78YTuiqjO1JfZ4KJHN4VGUsDPJhd8733e0e",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"order_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payment/simulate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"payment",
+								"simulate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin - Products",
+			"item": [
+				{
+					"name": "Create Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "1|LLtPmKgRaHG2C9KF3Nx3NstdhToM9wmuA1AEGtdm3987b262",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Matress\",\n    \"description\": \"12 inches queen size matress\",\n    \"price\": 3000.00,\n    \"stock\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Restock Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "1|LLtPmKgRaHG2C9KF3Nx3NstdhToM9wmuA1AEGtdm3987b262",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"quantity\": 150\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/products/1/restock",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"products",
+								"1",
+								"restock"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin - Orders",
+			"item": [
+				{
+					"name": "Get All Orders",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "11|DUueiBlGjH0niCrU62c5TdHIkzxDxycG8tR0E4Vne73b6e10",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/orders",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "admin_token",
+			"value": ""
+		}
+	]
+}
