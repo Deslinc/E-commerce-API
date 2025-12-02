@@ -12,7 +12,7 @@ class ProductController extends Controller
     /**
      * Display a listing of all products (All users or public)
      * Anyone can view the product list
-     * 
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function index()
@@ -31,7 +31,7 @@ class ProductController extends Controller
     /**
      * Display a single product by ID (all users or public)
      * Anyone can view product details
-     * 
+     *
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
@@ -58,33 +58,41 @@ class ProductController extends Controller
 
     /**
      * Store a new product (ADMIN ONLY)
-     * 
+     *
+     * Accepts either:
+     *  - file upload under "image" (form-data), OR
+     *  - remote image URL in "image_url" (JSON or form-data)
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
-        // Validate incoming request
+        // Validate incoming request.
+        // 'image' is an optional uploaded file; 'image_url' is an optional remote URL.
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url' => 'nullable|url',
         ]);
 
-        // Handle image upload if present
+        // Resolve final image_url:
+        // prefer uploaded file over provided URL.
         $imageUrl = null;
+
         if ($request->hasFile('image')) {
-            // Store image in 'public/products' directory
-            // This will create storage/app/public/products folder
+            // Store uploaded image to public disk (storage/app/public/products)
             $path = $request->file('image')->store('products', 'public');
-            
-            // Generate full URL for the image
-            $imageUrl = Storage::url($path);
+            $imageUrl = Storage::url($path); // e.g. /storage/products/abcd.jpg
+        } elseif ($request->filled('image_url')) {
+            // Use the provided external URL
+            $imageUrl = $request->input('image_url');
         }
 
-        // Create new product with validated data
+        // Create new product using validated data and resolved image_url
         $product = Product::create([
             'name' => $request->name,
             'description' => $request->description,
@@ -104,7 +112,9 @@ class ProductController extends Controller
 
     /**
      * Update an existing product (ADMIN ONLY)
-     * 
+     *
+     * Accepts either a new uploaded file (image) or a new image_url string.
+     *
      * @param Request $request
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
@@ -129,25 +139,33 @@ class ProductController extends Controller
             'price' => 'sometimes|required|numeric|min:0',
             'stock' => 'sometimes|required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url' => 'nullable|url',
         ]);
 
-        // Handle image upload if new image is provided
+        // If a new image file is uploaded, store it and delete previous local file (if any)
         if ($request->hasFile('image')) {
-            // Delete old image if it exists
             if ($product->image_url) {
-                // Extract path from URL and delete
-                $oldPath = str_replace('/storage/', '', parse_url($product->image_url, PHP_URL_PATH));
-                Storage::disk('public')->delete($oldPath);
+                // If previous image_url pointed to local storage (starts with /storage/), delete the old file
+                $oldPath = parse_url($product->image_url, PHP_URL_PATH); // e.g. /storage/products/old.jpg or /products/old.jpg
+                if (strpos($oldPath, '/storage/') === 0) {
+                    // Convert to disk path (remove leading '/storage/')
+                    $oldPath = ltrim(str_replace('/storage/', '', $oldPath), '/');
+                    Storage::disk('public')->delete($oldPath);
+                }
+                // If previous image_url was an external URL, we do not attempt to delete remote file.
             }
 
-            // Store new image
+            // Store new uploaded image
             $path = $request->file('image')->store('products', 'public');
             $product->image_url = Storage::url($path);
+        } elseif ($request->filled('image_url')) {
+            // If client provided an external URL, set it as the image_url.
+            // (Optional: remove a previously stored local file here if desired)
+            $product->image_url = $request->input('image_url');
         }
 
-        // Update product with new data
-        // fill() method updates only the fields present in the request
-        $product->fill($request->except('image'));
+        // Update other fields (exclude the 'image' file input)
+        $product->fill($request->except(['image']));
         $product->save();
 
         return response()->json([
@@ -161,7 +179,7 @@ class ProductController extends Controller
 
     /**
      * Delete a product (ADMIN ONLY)
-     * 
+     *
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
@@ -178,10 +196,14 @@ class ProductController extends Controller
             ], 404);
         }
 
-        // Delete product image if it exists
+        // Delete product image if it exists and was stored locally
         if ($product->image_url) {
-            $oldPath = str_replace('/storage/', '', parse_url($product->image_url, PHP_URL_PATH));
-            Storage::disk('public')->delete($oldPath);
+            $oldPath = parse_url($product->image_url, PHP_URL_PATH);
+            if (strpos($oldPath, '/storage/') === 0) {
+                $oldPath = ltrim(str_replace('/storage/', '', $oldPath), '/');
+                Storage::disk('public')->delete($oldPath);
+            }
+            // If image_url is remote, we do not delete remote files.
         }
 
         // Delete the product from database
@@ -196,7 +218,7 @@ class ProductController extends Controller
     /**
      * Restock a product (ADMIN ONLY)
      * Adds stock to an existing product
-     * 
+     *
      * @param Request $request
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
@@ -219,14 +241,19 @@ class ProductController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        // Increase stock using model method
-        $product->increaseStock($request->quantity);
+        // Increase stock using model method (if it exists) or fallback
+        if (method_exists($product, 'increaseStock')) {
+            $product->increaseStock($request->quantity);
+        } else {
+            $product->stock = $product->stock + (int)$request->quantity;
+            $product->save();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Product restocked successfully',
             'data' => [
-                'product' => $product->fresh(), // fresh() reloads the model from database
+                'product' => $product->fresh(),
             ],
         ], 200);
     }
